@@ -1,0 +1,55 @@
+#Plot K-Means inertia plot to decide on number of clusters
+scores_pca = finalDf.drop(labels=['target'], axis=1)
+wcss = []
+for i in range(1, 21):
+    kmeans_pca = KMeans(n_clusters = i, init = 'k-means++', random_state=42)
+    kmeans_pca.fit(scores_pca)
+    wcss.append(kmeans_pca.inertia_)
+    
+plt.figure(figsize=(10,8))
+plt.plot(range(1,21), wcss, marker = 'o')
+plt.xlabel('Number of clusters')
+plt.ylabel('WCSS')
+plt.title('K-means with PCA clustering')
+plt.show()
+
+#Cluster_number is chosen where the elbow-point occurs
+kmeans_pca = KMeans(n_clusters=Cluster_number, init='k-means++', random_state=42)
+kmeans_pca.fit(scores_pca)
+
+df_pcak = finalDf
+df_pcak['Segment K-means PCA'] = kmeans_pca.labels_
+
+
+#Plot K-Means Cluster Score Plot
+%matplotlib inline
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,7))
+
+fig.suptitle('PCA versus KMeans', fontsize=20)
+
+ax1.set_xlabel('Principal Component 1', fontsize = 15)
+ax1.set_ylabel('Principal Component 2', fontsize = 15)
+
+plt.tight_layout()
+
+targets = []
+colors = []
+
+for target, color in zip(targets,colors):
+    indicesToKeep = finalDf['target'] == target
+    ax1.scatter(finalDf.loc[indicesToKeep, 'PC_1'], finalDf.loc[indicesToKeep, 'PC_2'], c = color, s = 50)
+ax1.legend(targets)
+ax1.grid()
+ax1.plot()
+
+ax2.set_xlabel('Principal Component 1', fontsize = 15)
+
+targets = []
+colors = []
+
+for target, color in zip(targets,colors):
+    indicesToKeep = df_pcak['Segment K-means PCA'] == target
+    ax2.scatter(df_pcak.loc[indicesToKeep, 'PC_1'], df_pcak.loc[indicesToKeep, 'PC_2'], c = color, s = 50)
+ax2.legend(targets)
+ax2.grid()
+ax2.plot()
