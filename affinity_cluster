@@ -1,0 +1,43 @@
+from sklearn.cluster import AffinityPropagation
+
+ap = AffinityPropagation(preference=-0.2).fit(X_means)
+
+ap_labels = ap.labels_
+
+pcas3 = pd.concat([principalDf, data[['target']]], axis = 1)
+
+df_optics_affinity = pcas3
+df_optics_affinity['Affinity Prop label'] = ap_labels
+
+#plot score plot versus Affinity Prop score plot
+%matplotlib inline
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,7))
+
+fig.suptitle('PCA versus Means Shift', fontsize=20)
+
+ax1.set_xlabel('Principal Component 1', fontsize = 15)
+ax1.set_ylabel('Principal Component 2', fontsize = 15)
+
+plt.tight_layout()
+
+targets = []
+colors = []
+
+for target, color in zip(targets,colors):
+    indicesToKeep = finalDf['target'] == target
+    ax1.scatter(finalDf.loc[indicesToKeep, 'PC_1'], finalDf.loc[indicesToKeep, 'PC_2'], c = color, s = 50)
+ax1.legend(targets)
+ax1.grid()
+ax1.plot()
+
+ax2.set_xlabel('Principal Component 1', fontsize = 15)
+
+targets = []
+colors = []
+
+for target, color in zip(targets,colors):
+    indicesToKeep = df_optics_affinity['Affinity Prop label'] == target
+    ax2.scatter(df_optics_affinity.loc[indicesToKeep, 'PC_1'], df_optics_affinity.loc[indicesToKeep, 'PC_2'], c = color, s = 50)
+ax2.legend(targets)
+ax2.grid()
+ax2.plot()
