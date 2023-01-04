@@ -6,6 +6,49 @@ pcas = pd.concat([principalDf, data[['target']]], axis = 1)
 df_optics = pcas
 df_optics['OPTICS label'] = clustering.labels_
 
+#Calculate the percentage of noisy clustering points and how well matched the predicted clusters equate to the calculated clusters
+optics_labels = pd.DataFrame(data=[df_optics['target'], df_optics['OPTICS label']])
+optics_labels = optics_labels.T
+
+#The values returned need to be altered depending on the clusters expected for each group
+def predicted_clusters(a):
+    if a == '12dx':
+        return 0
+    if a == '12hx':
+        return 0
+    if a == '0h':
+        return 1
+    if a == '0d':
+        return 1
+    if a == '0dx':
+        return 3
+    if a == '0hx':
+        return 4
+    if a == '0w':
+        return 1
+    if a == '0 days':
+        return 2
+    if a == '12 days':
+        return 2
+    if a == '12d':
+        return 1
+    if a == '12h':
+        return 1
+    if a == '12w':
+        return 1
+
+optics_labels['Expected Cluster'] = optics_labels['target'].apply(predicted_clusters)
+noise_ = (optics_labels['OPTICS label'] == -1)
+noise_.describe()
+#input numbers from describe
+noise_percentage = ((428-403)/428)*100
+noise_percentage
+
+#Find the accuracy as a percentage of the whole using the expected cluster count and the 
+accuracy = optics_labels.loc[(optics_labels['OPTICS label'])!=(optics_labels['Expected Cluster'])]
+accuracy_percentage = (len(accuracy)/len(optics_labels))*100
+accuracy_percentage
+
 #plot score plot versus optic score plot
 %matplotlib inline
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,7))
