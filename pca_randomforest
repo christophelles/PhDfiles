@@ -1,0 +1,59 @@
+from pandas import *
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.signal import savgol_filter
+from sklearn.decomposition import PCA as sk_pca
+from sklearn.preprocessing import StandardScaler
+from sklearn import svm
+from sklearn.cluster import KMeans
+from sklearn.model_selection import train_test_split
+from category_encoders.ordinal import OrdinalEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import svm, datasets
+from sklearn.metrics import roc_curve, auc
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
+from scipy import interp
+from sklearn.metrics import roc_auc_score
+from itertools import cycle
+
+data = read_csv('file_name.csv')
+
+#Split data into test and train set
+df_train, df_test = train_test_split(data, test_size=0.25, random_state=22)
+
+x_train = df_train.loc[:, df_train.columns != 'target'].values
+x_test = df_test.loc[:, df_test.columns != 'target'].values
+
+y_train = df_train['target']
+y_train = np.ravel(y_train)
+y_test = df_test['target']
+y_test = np.ravel(y_test)
+
+#Encode the group labels into ordinal values 
+enc = OrdinalEncoder(handle_unknown='value')
+y_train1 = enc.fit_transform(y_train)
+y_test1 = enc.transform(y_test)
+
+y_train1.plot(title="Distribution of Samples",kind='hist')
+
+#Create a Random forest classifier
+clf = RandomForestClassifier(n_estimators=100,oob_score=True,n_jobs=-1)
+
+clf.fit(x_train, np.ravel(y_train1))
+y_pred_proba = clf.predict_proba(x_test)[:,1]
+
+# Predicting the Test set results
+y_pred = clf.predict(x_test)
+#Reverse factorize (turn ordinal back to original strings)
+y_pred1 = enc.inverse_transform(y_pred)
+# Making the Confusion Matrix
+#results = pd.DataFrame({y_test, y_pred1})
+#results
+y_pred1['Actual Y'] = y_test.tolist()
+results = y_pred1.rename(columns={0:'Predicted Y'})
+
