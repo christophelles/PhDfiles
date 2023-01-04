@@ -1,5 +1,5 @@
 # PhDfiles
-Repository of the machine learning techniques used for my PhD thesis
+Repository of the machine learning techniques used for my PhD thesis. This code was written in Jupyter Notebook.
 
 pca_washedtextiles uses an arbritrary csv file 'file_name.csv'. This file should be a data matrix of the format (xy) the horizontal axis labels should be the spectral wavenumbers/wavelength and the vertical axis should be the groupings of the spectra. 
 
