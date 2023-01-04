@@ -49,11 +49,59 @@ y_pred_proba = clf.predict_proba(x_test)[:,1]
 
 # Predicting the Test set results
 y_pred = clf.predict(x_test)
+
 #Reverse factorize (turn ordinal back to original strings)
 y_pred1 = enc.inverse_transform(y_pred)
-# Making the Confusion Matrix
-#results = pd.DataFrame({y_test, y_pred1})
-#results
+
+#Calculate an accuracy measure
 y_pred1['Actual Y'] = y_test.tolist()
 results = y_pred1.rename(columns={0:'Predicted Y'})
+correct = results.drop(results[results['Predicted Y'] != results['Actual Y']].index, axis=0)
+accuracy = (len(correct)/len(results))*100
+accuracy
 
+#Define the features
+featstr = data.columns.drop('target')
+feats = [float(x) for x in featstr]
+
+df_feature_importances = pd.DataFrame({'Feature': feats, 'Importance': 
+  clf.feature_importances_}).sort_values('Importance', ascending=False)
+df_feature_importances
+
+#Remove features whose importance is below the mean
+new_df = df_feature_importances.drop(df_feature_importances[df_feature_importances['Importance'] < df_feature_importances['Importance'].mean()].index, axis=0)
+pyplot.bar(new_df['Feature'], new_df['Importance'])
+
+removed_df = df_feature_importances.drop(df_feature_importances[
+  df_feature_importances['Importance'] > 0.000576].index, axis=0)
+  
+feature = removed_df['Feature']
+features = [str(x) for x in feature]
+new_x = data.drop(columns=features)
+
+#Rerun RF to check that removed features improves analysis
+ndf_train, ndf_test = train_test_split(new_x, test_size=0.25, random_state=22)
+nx_train = ndf_train.loc[:, ndf_train.columns != 'target'].values
+nx_test = ndf_test.loc[:, ndf_test.columns != 'target'].values
+
+ny_train = ndf_train['target']
+ny_train = np.ravel(ny_train)
+ny_test = ndf_test['target']
+ny_test = np.ravel(ny_test)
+
+enc = OrdinalEncoder(handle_unknown='value')
+ny_train1 = enc.fit_transform(ny_train)
+ny_test1 = enc.transform(ny_test)
+
+clf = RandomForestClassifier(n_estimators=100,oob_score=True,n_jobs=-1)
+clf.fit(nx_train, np.ravel(ny_train1))
+ny_pred_proba = clf.predict_proba(nx_test)[:,1]
+ny_pred = clf.predict(nx_test)
+ny_pred1 = enc.inverse_transform(ny_pred)
+ny_pred1['Actual Y'] = ny_test.tolist()
+nresults = ny_pred1.rename(columns={0:'Predicted Y'})
+ncorrect = nresults.drop(nresults[nresults['Predicted Y'] != nresults['Actual Y']].index, axis=0)
+naccuracy = (len(ncorrect)/len(nresults))*100
+naccuracy
+
+#use pca_washedtextiles file to run PCA analysis on the new_x dataset. 
