@@ -1,0 +1,80 @@
+from pandas import *
+import pandas as pd 
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from mpl_toolkits.mplot3d import Axes3D
+from scipy.signal import savgol_filter
+from sklearn.decomposition import PCA as sk_pca
+from sklearn.preprocessing import StandardScaler
+from sklearn import svm
+from sklearn.cluster import KMeans
+from sys import stdout
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import mean_squared_error, r2_score
+
+dataF = read_csv('All wool - 3xw.csv')
+data = dataF.rename(columns={'Wavenumbers [1/cm]':'target'})
+data
+
+new_df1 = data.drop(data[(data['target'] == '0h')|(data['target'] == '0hx')|(data['target'] == '0dx')|(data['target'] == '0h - w1')|(data['target'] == '0h - w2')|(data['target'] == '0h - w3')|(data['target'] == '0w')|(data['target'] == '0w - w1')|(data['target'] == '0w - w2')|(data['target'] == '0w - w3')|(data['target'] == '0 days - w1')|(data['target'] == '0 days - w2')|(data['target'] == '0 days - w3')|(data['target'] == '12h')|(data['target'] == '12w')|(data['target'] == '3 days')|(data['target'] == '6 days')|(data['target'] == '9 days')|(data['target'] == '12 days')|(data['target'] == '12d')|(data['target'] == '0 days')].index)
+new_df = new_df1.reset_index()
+new_df = new_df.drop(labels='index', axis=1)
+pd.set_option('display.max_rows', 500)
+new_df_ = pd.DataFrame(new_df)
+new_df_
+
+new_df_.loc[new_df_['target'] == '0d - w1', 'target']=30
+new_df_.loc[new_df_['target'] == '0d', 'target']=0
+new_df_.loc[new_df_['target'] == '0d - w2', 'target']=90
+new_df_.loc[new_df_['target'] == '0d - w3', 'target']=180
+new_df_ = new_df_.rename(columns={'target':'Days'})
+new_df_
+
+from sklearn.model_selection import train_test_split
+df_train, df_test = train_test_split(new_df_, test_size=0.25, random_state=22)
+
+x_train = df_train.loc[:, df_train.columns != 'Days'].values
+x_test = df_test.loc[:, df_test.columns != 'Days'].values
+
+y_train = df_train['Days'].astype(int)
+y_test = df_test['Days'].astype(int)
+
+y_train.plot(
+    title="Distribution of Samples",
+    kind='hist', 
+)
+
+from sklearn.ensemble import RandomForestClassifier
+
+clf = RandomForestClassifier(
+    n_estimators=100,
+    oob_score=True,
+    n_jobs=-1,
+)
+
+clf.fit(x_train, np.ravel(y_train))
+y_pred_proba = clf.predict_proba(x_test)[:,1]
+
+import numpy as np
+import matplotlib.pyplot as plt
+from itertools import cycle
+
+from sklearn import svm, datasets
+from sklearn.metrics import roc_curve, auc
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
+from scipy import interp
+from sklearn.metrics import roc_auc_score
+
+#Predicting the Test set results
+y_pred = clf.predict(x_test)
+results1 = DataFrame(y_pred, columns=['Predicted Y'])
+y_te
