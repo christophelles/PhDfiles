@@ -7,4 +7,4 @@ pca_washedtextiles allows the analysis of spectral data using Principal Componen
 
 All _cluster files describe methods to cluster the PCA found using pca_washedtextiles. The OPTICS clustering technique was found to be the best at describing the dataset and therefore a measure of the accuracy was determined. 
 
-plsr file was done on a dataset of samples which had been aged for different periods of time (in days), this was done to try and create a predictive model for ageing of wool and cotton textiles. 
+plsr_ files were done on a dataset of samples which had been aged for different periods of time (in days), this was done to try and create a predictive model for ageing of wool and cotton textiles. plsr_window refers to the use of a sliding window to select variables, plsr_rf selects variables based on a random forest classifier. 
