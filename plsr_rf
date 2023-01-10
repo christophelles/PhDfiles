@@ -2,79 +2,227 @@ from pandas import *
 import pandas as pd 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.signal import savgol_filter
-from sklearn.decomposition import PCA as sk_pca
-from sklearn.preprocessing import StandardScaler
-from sklearn import svm
-from sklearn.cluster import KMeans
-from sys import stdout
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.signal import savgol_filter
-from sklearn.cross_decomposition import PLSRegression
-from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import mean_squared_error, r2_score
-
-dataF = read_csv('All wool - 3xw.csv')
-data = dataF.rename(columns={'Wavenumbers [1/cm]':'target'})
-data
-
-new_df1 = data.drop(data[(data['target'] == '0h')|(data['target'] == '0hx')|(data['target'] == '0dx')|(data['target'] == '0h - w1')|(data['target'] == '0h - w2')|(data['target'] == '0h - w3')|(data['target'] == '0w')|(data['target'] == '0w - w1')|(data['target'] == '0w - w2')|(data['target'] == '0w - w3')|(data['target'] == '0 days - w1')|(data['target'] == '0 days - w2')|(data['target'] == '0 days - w3')|(data['target'] == '12h')|(data['target'] == '12w')|(data['target'] == '3 days')|(data['target'] == '6 days')|(data['target'] == '9 days')|(data['target'] == '12 days')|(data['target'] == '12d')|(data['target'] == '0 days')].index)
-new_df = new_df1.reset_index()
-new_df = new_df.drop(labels='index', axis=1)
-pd.set_option('display.max_rows', 500)
-new_df_ = pd.DataFrame(new_df)
-new_df_
-
-new_df_.loc[new_df_['target'] == '0d - w1', 'target']=30
-new_df_.loc[new_df_['target'] == '0d', 'target']=0
-new_df_.loc[new_df_['target'] == '0d - w2', 'target']=90
-new_df_.loc[new_df_['target'] == '0d - w3', 'target']=180
-new_df_ = new_df_.rename(columns={'target':'Days'})
-new_df_
-
 from sklearn.model_selection import train_test_split
-df_train, df_test = train_test_split(new_df_, test_size=0.25, random_state=22)
-
-x_train = df_train.loc[:, df_train.columns != 'Days'].values
-x_test = df_test.loc[:, df_test.columns != 'Days'].values
-
-y_train = df_train['Days'].astype(int)
-y_test = df_test['Days'].astype(int)
-
-y_train.plot(
-    title="Distribution of Samples",
-    kind='hist', 
-)
-
+from category_encoders.ordinal import OrdinalEncoder
 from sklearn.ensemble import RandomForestClassifier
-
-clf = RandomForestClassifier(
-    n_estimators=100,
-    oob_score=True,
-    n_jobs=-1,
-)
-
-clf.fit(x_train, np.ravel(y_train))
-y_pred_proba = clf.predict_proba(x_test)[:,1]
-
-import numpy as np
-import matplotlib.pyplot as plt
-from itertools import cycle
-
 from sklearn import svm, datasets
 from sklearn.metrics import roc_curve, auc
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
 from sklearn.multiclass import OneVsRestClassifier
 from scipy import interp
 from sklearn.metrics import roc_auc_score
+from itertools import cycle
 
-#Predicting the Test set results
+data = read_csv('file_name_plsr.csv')
+
+#Split data into test and train set
+df_train, df_test = train_test_split(data, test_size=0.25, random_state=22)
+
+x_train = df_train.loc[:, df_train.columns != 'target'].values
+x_test = df_test.loc[:, df_test.columns != 'target'].values
+
+y_train = df_train['target']
+y_train = np.ravel(y_train)
+y_test = df_test['target']
+y_test = np.ravel(y_test)
+
+#Encode the group labels into ordinal values 
+enc = OrdinalEncoder(handle_unknown='value')
+y_train1 = enc.fit_transform(y_train)
+y_test1 = enc.transform(y_test)
+
+y_train1.plot(title="Distribution of Samples",kind='hist')
+
+#Create a Random forest classifier
+clf = RandomForestClassifier(n_estimators=100,oob_score=True,n_jobs=-1)
+
+clf.fit(x_train, np.ravel(y_train1))
+y_pred_proba = clf.predict_proba(x_test)[:,1]
+
+# Predicting the Test set results
 y_pred = clf.predict(x_test)
-results1 = DataFrame(y_pred, columns=['Predicted Y'])
-y_te
+
+#Reverse factorize (turn ordinal back to original strings)
+y_pred1 = enc.inverse_transform(y_pred)
+
+#Calculate an accuracy measure
+y_pred1['Actual Y'] = y_test.tolist()
+results = y_pred1.rename(columns={0:'Predicted Y'})
+correct = results.drop(results[results['Predicted Y'] != results['Actual Y']].index, axis=0)
+accuracy = (len(correct)/len(results))*100
+accuracy
+
+#Define the features
+featstr = data.columns.drop('target')
+feats = [float(x) for x in featstr]
+
+df_feature_importances = pd.DataFrame({'Feature': feats, 'Importance': 
+  clf.feature_importances_}).sort_values('Importance', ascending=False)
+df_feature_importances
+
+#Remove features whose importance is below the mean
+new_df = df_feature_importances.drop(df_feature_importances[df_feature_importances['Importance'] < df_feature_importances['Importance'].mean()].index, axis=0)
+pyplot.bar(new_df['Feature'], new_df['Importance'])
+
+removed_df = df_feature_importances.drop(df_feature_importances[
+  df_feature_importances['Importance'] > 0.000576].index, axis=0)
+  
+feature = removed_df['Feature']
+features = [str(x) for x in feature]
+new_x = data.drop(columns=features)
+
+#Rerun RF to check that removed features improves analysis
+ndf_train, ndf_test = train_test_split(new_x, test_size=0.25, random_state=22)
+nx_train = ndf_train.loc[:, ndf_train.columns != 'target'].values
+nx_test = ndf_test.loc[:, ndf_test.columns != 'target'].values
+
+ny_train = ndf_train['target']
+ny_train = np.ravel(ny_train)
+ny_test = ndf_test['target']
+ny_test = np.ravel(ny_test)
+
+enc = OrdinalEncoder(handle_unknown='value')
+ny_train1 = enc.fit_transform(ny_train)
+ny_test1 = enc.transform(ny_test)
+
+clf = RandomForestClassifier(n_estimators=100,oob_score=True,n_jobs=-1)
+clf.fit(nx_train, np.ravel(ny_train1))
+ny_pred_proba = clf.predict_proba(nx_test)[:,1]
+ny_pred = clf.predict(nx_test)
+ny_pred1 = enc.inverse_transform(ny_pred)
+ny_pred1['Actual Y'] = ny_test.tolist()
+nresults = ny_pred1.rename(columns={0:'Predicted Y'})
+ncorrect = nresults.drop(nresults[nresults['Predicted Y'] != nresults['Actual Y']].index, axis=0)
+naccuracy = (len(ncorrect)/len(nresults))*100
+naccuracy
+
+#Carry out PLSR on the features with importance > mean
+x = new_x.loc[:, new_x.columns != 'Days'].values
+y = new_x.loc[:, ['Days']].values.astype(int)
+y1 = np.array(new_x['Days']).astype(int)
+
+def optimise_pls_cv(x, y, n_comp, plot_components=True):
+    '''Run PLS including a variable number of components, up to n_comp,
+       and calculate MSE '''
+    mse = []
+    component = np.arange(1, n_comp)
+    for i in component:
+        pls = PLSRegression(n_components=i)
+        # Cross-validation
+        y_cv = cross_val_predict(pls, x, y, cv=10)
+        mse.append(mean_squared_error(y, y_cv))
+        comp = 100*(i+1)/40
+        # Trick to update status on the same line
+        stdout.write("\r%d%% completed" % comp)
+        stdout.flush()
+    stdout.write("\n")
+    # Calculate and print the position of minimum in MSE
+    msemin = np.argmin(mse)
+    print("Suggested number of components: ", msemin+1)
+    stdout.write("\n")
+    if plot_components is True:
+        with plt.style.context(('ggplot')):
+            plt.plot(component, np.array(mse), '-v', color = 'blue', mfc='blue')
+            plt.plot(component[msemin], np.array(mse)[msemin], 'P', ms=10, mfc='red')
+            plt.xlabel('Number of PLS components')
+            plt.ylabel('MSE')
+            plt.title('PLS')
+            plt.xlim(left=-1)
+        plt.show()
+    # Define PLS object with optimal number of components
+    pls_opt = PLSRegression(n_components=msemin+1)
+    # Fir to the entire dataset
+    pls_opt.fit(x, y)
+    y_c = pls_opt.predict(x)
+    # Cross-validation
+    y_cv = cross_val_predict(pls_opt, x, y, cv=10)
+    # Calculate scores for calibration and cross-validation
+    score_c = r2_score(y, y_c)
+    score_cv = r2_score(y, y_cv)
+    # Calculate mean squared error for calibration and cross validation
+    mse_c = mean_squared_error(y, y_c)
+    mse_cv = mean_squared_error(y, y_cv)
+    print('R2 calib: %5.3f'  % score_c)
+    print('R2 CV: %5.3f'  % score_cv)
+    print('MSE calib: %5.3f' % mse_c)
+    print('MSE CV: %5.3f' % mse_cv)
+    # Plot regression and figures of merit
+    rangey = max(y) - min(y)
+    rangex = max(y_c) - min(y_c)
+    # Fit a line to the CV vs response
+    z = np.polyfit(y1, y_c, 1)
+    with plt.style.context(('ggplot')):
+        fig, ax = plt.subplots(figsize=(9, 5))
+        ax.scatter(y_c, y, c='red', edgecolors='k')
+        #Plot the best fit line
+        ax.plot(np.polyval(z,y), y, c='blue', linewidth=1)
+        #Plot the ideal 1:1 line
+        ax.plot(y, y, color='green', linewidth=1)
+        plt.title('$R^{2}$ (CV): '+str(score_cv))
+        plt.xlabel('Predicted Days')
+        plt.ylabel('Measured Days')
+        plt.show()
+    return
+    
+#run pls optimisation
+optimise_pls_cv(x,y, 40, plot_components=True)
+
+#run plsr with number of components suggested by optimisation
+pls = PLSRegression(n_components=4)
+pls_ = pls.fit(x,y)
+lv_Df = pd.DataFrame(data = pls_.x_scores_, columns = ['LV 1', 'LV 2', 'LV 3', 'LV 4'])
+finalDf = pd.concat([lv_Df, new_x[['Days']]], axis = 1)
+pd.set_option("display.max_rows", 176)
+
+#plot the pls scores
+fig = plt.figure(figsize = (8,8))
+ax = fig.add_subplot(1, 1, 1)
+ax.set_xlabel('LV 1', fontsize = 15)
+ax.set_ylabel('LV 2', fontsize = 15)
+ax.set_title('PLS Scores', fontsize = 20)
+
+targets = [0, 30, 90, 180]
+colors = ['lightcoral', 'orange', 'greenyellow', 'dodgerblue']
+
+for target, color in zip(targets,colors):
+    indicesToKeep = finalDf['Days'] == target
+    ax.scatter(finalDf.loc[indicesToKeep, 'LV 1'], finalDf.loc[indicesToKeep, 'LV 2'], c = color, s = 50)
+ax.legend(targets)
+ax.grid()
+
+#create loadings table
+loadings = pls_.x_weights_
+loadings
+
+loadingDf = DataFrame(loadings)
+loadingDf
+loadingDf.columns = ['LV1', 'LV2', 'LV3', 'LV4']
+wvs = new_df['Feature'].reset_index()
+wvs = wvs.sort_values(by =['Feature'], ascending=False, ignore_index=True)
+wv = wvs.drop('index', axis=1)
+
+pd.set_option('display.max_rows', 2000)
+table = pd.concat([wv, loadingDf], axis = 1)
+
+#plot loadings
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+x = table['Feature']
+y = table['LV1']
+
+plt.bar(x, y, width=2, bottom=None)
+#plt.plot(x, y)
+plt.title('LV1 Loadings')
+plt.xlabel('Wavenumbers [1/cm]')
+plt.ylabel('w[1]')
+plt.show
+
+#rearrange data for prediction
+feature = removed_df['Feature']
+features = [str(x) for x in feature]
+pred_df = data.drop(columns=features)
+
+#prediction of data
+X = pred_Df.loc[:, pred_Df.columns != 'target'].values
+Y_pred = pls.predict(X)
