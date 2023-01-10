@@ -6,3 +6,5 @@ pca_washedtextiles uses an arbritrary csv file 'file_name.csv'. This file should
 pca_washedtextiles allows the analysis of spectral data using Principal Components Analysis. In order to determine the appropriate number of principal components, the data matrix was randomised and pca was run, the eigenvalue for this PCA was added to a list. This was repeated 999 times. An average eigenvalue was found from the list, the resulting eigenvalue was used as a marker for which principal component to used. 
 
 All _cluster files describe methods to cluster the PCA found using pca_washedtextiles. The OPTICS clustering technique was found to be the best at describing the dataset and therefore a measure of the accuracy was determined. 
+
+plsr file was done on a dataset of samples which had been aged for different periods of time (in days), this was done to try and create a predictive model for ageing of wool and cotton textiles. 
