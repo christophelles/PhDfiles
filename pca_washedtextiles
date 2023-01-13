@@ -15,7 +15,8 @@ from sklearn.cluster import estimate_bandwidth
 
 #organisation of datafile
 dataF = read_csv('file_name.csv')
-newdata = dataF.rename(columns={'Wavenumbers [1/cm]':'target'})
+data = dataF.rename(columns={'Wavenumbers [1/cm]':'target'})
+newdata = data.drop(columns='target')
 
 #randomise data matrix, run PCA and find average eigenvalues
 i = 0
@@ -24,24 +25,23 @@ av_lambda = []
 while i < 1001:
     newerdata = newdata.sample(frac=1, axis=1).sample(frac=1).reset_index(drop=True)
     xi = newerdata.values
-    pca_ = PCA(n_components=428)  #428 is the no. of rows
+    pca_ = PCA(n_components=len(newdata))
     pca_loop = pca_.fit_transform(xi)
     pca_loop_eigen = pca_.explained_variance_
-    av_eigen = sum(pca_loop_eigen)/428
+    av_eigen = sum(pca_loop_eigen)/len(newdata)
     av_lambda.append(av_eigen)
     i += 1
     av_lambda
     
-average_lambda = sum(av_lambda)/428
+average_lambda = sum(av_lambda)/len(newdata)
 print(average_lambda)
 
 # Fit the spectral data and extract the explained variance ratio
 skpca1 = sk_pca(n_components=30)
 X1 = skpca1.fit(newdata)
-print(skpca1.explained_variance_)
-
-#Compare the skpca1.explained_variance to the average_lambda value, 
-#PC_number = maximum number of components selected where skpca1.explained_variance > average_lambda
+lamdas = skpca1.explained_variance_
+lamda_lim = [item for item in lamdas if item >= average_lambda]
+PC_number = len(lamda_lim)
 
 #Find explained variance as a percentage
 expl_var_1 = X1.explained_variance_ratio_*100
@@ -64,13 +64,21 @@ ax1.tick_params(labelsize=18)
 plt.legend(fontsize='x-large')
 plt.show()
 
-#creating table for score plots
+import pandas as pd 
 x = newdata.values
 pca = PCA(n_components= PC_number)
 principalComponents = pca.fit_transform(x)
-principalDf = pd.DataFrame(data = principalComponents, columns = ['PC_1','PC_2'...,'PC_number'])
+principalDf = pd.DataFrame(data = principalComponents)
 finalDf = pd.concat([principalDf, data[['target']]], axis = 1)
-pd.set_option("display.max_rows", 176)
+
+cols = []             
+for i in range(1, PC_number+1):
+    col = "PC"+str(i)      
+    cols.append(col)
+else:
+    cols.append('target')
+
+finalDf.columns = cols
 
 #Generic code for plotting score plots
 fig = plt.figure(figsize = (8,8))
@@ -89,13 +97,11 @@ ax.grid()
 
 #create loadings table
 loadings = pca.components_
-loadings
-
 loadingDf = DataFrame(loadings)
 loadingsDf = loadingDf.T
-loadingsDf.columns = ['PC_1','PC_2',...,'PC_number']
+loadingsDf.columns = cols
 
-wv = read_csv('wv 3600.csv')#this file contained the wavenumbers
+wv = pd.Series(newdata.columns)
 
 pd.set_option("display.max_rows", 1000)
 
